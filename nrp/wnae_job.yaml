@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: wnae-job
+  namespace: axol1tl
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: tuner
+          image: python:3.10-slim
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: axovol
+              mountPath: /axovol
+          workingDir: /axovol/wnae_10_14
+
+          command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              set -e
+              # install python deps
+              python -m pip install --no-cache-dir -r requirements.txt
+              python -m pip install numpy==1.23.5
+              python -m pip install scipy==1.13.1
+              # run the script
+              python -u train_axo.py | tee wnae_training_10_14.log
+
+          resources:
+            requests:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: 2
+            limits:
+              cpu: "8"
+              memory: "32Gi"
+              nvidia.com/gpu: 2
+      volumes:
+        - name: axovol
+          persistentVolumeClaim:
+            claimName: axovol
