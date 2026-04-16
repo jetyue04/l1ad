@@ -1,0 +1,23 @@
+name: wnae_env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - pandas
+  - matplotlib
+  - scikit-learn
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
+  - cudatoolkit=12.1
+  - pip
+  - pip:
+      - pot==0.9.1
+      - sympy
+      - rich
+      - typer
+      - triton
+prefix: /axovol/conda_envs/wnae_env

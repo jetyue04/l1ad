@@ -1,17 +1,15 @@
 import time
 from pathlib import Path
-import time
-
 import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import torch
 from sklearn.metrics import roc_auc_score
-
-from wnae import WNAE
-from wnae._logger import log
-
 import matplotlib.pyplot as plt
+
+# Imports from models
+from model.wnae.wasserstein_normalized_autoencoder import WNAE
+from model.wnae._logger import log
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
