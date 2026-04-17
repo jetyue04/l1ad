@@ -6,8 +6,8 @@ training:
   batch_size: 2048
   n_epochs: 1000
   optimizer: "Adam"
-  learning_rate: 5e-5
-  weight_decay: 1e-6
+  learning_rate: 0.00005
+  weight_decay: 0.000001
   checkpoint_dir: "/axovol/l1ad/checkpoints/vicreg"
   checkpoint_interval: 50
 
