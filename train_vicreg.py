@@ -67,41 +67,66 @@ def vicreg_loss(z1, z2, sim_coeff=50, std_coeff=50, cov_coeff=1):
     return repr_loss, std_loss, cov, loss
 
 
+def save_checkpoint(vicreg, optimizer, epoch, loss, checkpoint_dir):
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    path = os.path.join(checkpoint_dir, f"checkpoint_epoch{epoch}.pt")
+    torch.save({
+        "epoch": epoch,
+        "model_state_dict": vicreg.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "loss": loss,
+    }, path)
+    print(f"Checkpoint saved to {path}")
+
+
 def train(config, device):
     x_train, x_test, x_sig, scale, bias = load_data(config["data"]["filepath"], device)
 
-    batch_size = config["training"]["batch_size"]
-    n_epochs   = config["training"]["n_epochs"]
+    batch_size          = config["training"]["batch_size"]
+    n_epochs            = config["training"]["n_epochs"]
+    checkpoint_dir      = config["training"]["checkpoint_dir"]
+    checkpoint_interval = config["training"]["checkpoint_interval"]
 
     train_loader, val_loader, val_loader_no_batch, sig_loader = make_loaders(
         x_train, x_test, x_sig, batch_size
     )
 
+    enc_cfg = config["model"]["encoder"]
     encoder = model.Encoder(
         input_size=57,
-        intermediate_architecture=[29],
-        bottleneck_size=10,
-        drop_out=None,
+        intermediate_architecture=enc_cfg["intermediate_architecture"],
+        bottleneck_size=enc_cfg["bottleneck_size"],
+        drop_out=enc_cfg["drop_out"],
     ).to(device)
 
-    vicreg = model.VICReg(encoder=encoder).to(device)
+    vic_cfg = config["model"]["vicreg"]
+    vicreg = model.VICReg(
+        encoder=encoder,
+        projection_dim=vic_cfg["projection_dim"],
+        projection_layers=vic_cfg["projection_layers"],
+        sim_coeff=vic_cfg["sim_coeff"],
+        std_coeff=vic_cfg["std_coeff"],
+        cov_coeff=vic_cfg["cov_coeff"],
+    ).to(device)
 
-    blur_p, blur_m, blur_s = 0.9004016520359364, 0.92685112547458, 0.749655944679925
-    mask_p = 0.5709886168264394
-
-    blur        = aug.FastFeatureBlur(prob=blur_p, magnitude=blur_m, strength=blur_s).to(device)
-    blur_prime  = aug.FastFeatureBlur(prob=blur_p, magnitude=blur_m, strength=blur_s).to(device)
-    mask        = aug.FastObjectMask(prob=mask_p).to(device)
-    mask_prime  = aug.FastObjectMask(prob=mask_p).to(device)
-    rotation        = aug.FastLorentzRotation(prob=0.5, norm_scale=scale, norm_bias=bias).to(device)
-    rotation_prime  = aug.FastLorentzRotation(prob=0.5, norm_scale=scale, norm_bias=bias).to(device)
+    aug_cfg = config["augmentation"]
+    blur        = aug.FastFeatureBlur(prob=aug_cfg["blur_p"], magnitude=aug_cfg["blur_magnitude"], strength=aug_cfg["blur_strength"]).to(device)
+    blur_prime  = aug.FastFeatureBlur(prob=aug_cfg["blur_p"], magnitude=aug_cfg["blur_magnitude"], strength=aug_cfg["blur_strength"]).to(device)
+    mask        = aug.FastObjectMask(prob=aug_cfg["mask_p"]).to(device)
+    mask_prime  = aug.FastObjectMask(prob=aug_cfg["mask_p"]).to(device)
+    rotation        = aug.FastLorentzRotation(prob=aug_cfg["rotation_p"], norm_scale=scale, norm_bias=bias).to(device)
+    rotation_prime  = aug.FastLorentzRotation(prob=aug_cfg["rotation_p"], norm_scale=scale, norm_bias=bias).to(device)
 
     def augment(x):
         x1 = rotation(mask(blur(x.clone())))
         x2 = rotation_prime(mask_prime(blur_prime(x.clone())))
         return x1, x2
 
-    optimizer = torch.optim.Adam(vicreg.parameters(), lr=5e-5, weight_decay=1e-6)
+    optimizer = torch.optim.Adam(
+        vicreg.parameters(),
+        lr=config["training"]["learning_rate"],
+        weight_decay=config["training"]["weight_decay"],
+    )
 
     for epoch in range(n_epochs):
         vicreg.train()
@@ -133,21 +158,26 @@ def train(config, device):
                 embedding_stds.append(vicreg.encoder(x1).std(dim=0).mean().item())
 
         n = batch_count
+        avg_loss = loss_total / n
         print(
             f"Epoch [{epoch+1}/{n_epochs}] | "
-            f"Total: {loss_total/n:.4f} | "
+            f"Total: {avg_loss:.4f} | "
             f"Repr: {repr_total/n:.4f} | "
             f"Std: {std_total/n:.4f} | "
             f"Cov: {cov_total/n:.4f} | "
             f"EmbedStd: {np.mean(embedding_stds):.4f}"
         )
 
+        if (epoch + 1) % checkpoint_interval == 0:
+            save_checkpoint(vicreg, optimizer, epoch + 1, avg_loss, checkpoint_dir)
+
+    save_checkpoint(vicreg, optimizer, n_epochs, avg_loss, checkpoint_dir)
     return vicreg
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="config/config.yaml")
+    parser.add_argument("--config", default="config/vicreg_config.yaml")
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--data",   default=None, help="Override data filepath")
     args = parser.parse_args()
