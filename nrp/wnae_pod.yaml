@@ -9,7 +9,14 @@ spec:
     #image: gitlab-registry.nrp-nautilus.io/mquinnan/axol1tl-hub:axol1tl-container
     # image: gitlab-registry.nrp-nautilus.io/mquinnan/axol1tl-hub:axo-env-gpu-conda
     # image: gitlab-registry.nrp-nautilus.io/nrp/scientific-images/python:cuda-v1.4.1
-    command: ["bash", "-c", "sleep 1d"]
+    workingDir: /axovol/l1ad
+    command:
+      - "/bin/bash"
+      - "-c"
+      - |
+        pip install pot --quiet
+        echo "pip install pot --quiet" >> ~/.bashrc
+        sleep 1d
     resources:
       limits:
         nvidia.com/gpu: 1

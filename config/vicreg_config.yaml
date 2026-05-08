@@ -1,0 +1,31 @@
+data:
+  filepath: "../training/v5/conditionsupdate_apr25.h5"
+  output: "output_vicreg"
+
+training:
+  batch_size: 2048
+  n_epochs: 1000
+  optimizer: "Adam"
+  learning_rate: 0.00005
+  weight_decay: 0.000001
+  checkpoint_dir: "/axovol/l1ad/checkpoints/vicreg"
+  checkpoint_interval: 50
+
+model:
+  encoder:
+    intermediate_architecture: [29]
+    bottleneck_size: 10
+    drop_out: null
+  vicreg:
+    projection_dim: 128
+    projection_layers: 3
+    sim_coeff: 50
+    std_coeff: 50
+    cov_coeff: 1
+
+augmentation:
+  blur_p: 0.9004016520359364
+  blur_magnitude: 0.92685112547458
+  blur_strength: 0.749655944679925
+  mask_p: 0.5709886168264394
+  rotation_p: 0.5
