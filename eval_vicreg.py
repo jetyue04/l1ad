@@ -263,6 +263,39 @@ def main():
     plt.savefig(out_combined, dpi=150)
     plt.close(fig)
     print(f"Saved: {out_combined}")
+
+    # --- Figure 4: Per-feature embedding distributions ---
+    n_features = emb_train.shape[1]
+    ncols = 4
+    nrows = (n_features + ncols - 1) // ncols
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 3.5, nrows * 2.8))
+    axes = np.array(axes).reshape(-1)
+    fig.suptitle(f"Encoder Output Feature Distributions  (epoch {epoch})", fontsize=13)
+
+    for i in range(n_features):
+        ax = axes[i]
+        lo = min(emb_train[:, i].min(), emb_val[:, i].min(), emb_sig[:, i].min())
+        hi = max(emb_train[:, i].max(), emb_val[:, i].max(), emb_sig[:, i].max())
+        bins = np.linspace(lo, hi, 50)
+        ax.hist(emb_train[:, i], bins=bins, histtype="step", color="steelblue",
+                density=True, label="Train BG", linewidth=1.2)
+        ax.hist(emb_val[:, i],   bins=bins, histtype="step", color="darkorange",
+                density=True, label="Val BG",   linewidth=1.2)
+        ax.hist(emb_sig[:, i],   bins=bins, histtype="step", color="crimson",
+                density=True, label="Signal",   linewidth=1.2)
+        ax.set_title(f"Feature {i}", fontsize=9)
+        ax.tick_params(labelsize=7)
+        if i == 0:
+            ax.legend(fontsize=7)
+
+    for j in range(n_features, len(axes)):
+        axes[j].set_visible(False)
+
+    plt.tight_layout()
+    out_features = os.path.join(args.outdir, f"feature_distributions_epoch{epoch}.png")
+    plt.savefig(out_features, dpi=150)
+    plt.close(fig)
+    print(f"Saved: {out_features}")
     print("Done.")
 
 
