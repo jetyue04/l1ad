@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 import argparse
+import csv
 import numpy as np
 import torch
 import yaml
@@ -119,6 +120,45 @@ def main():
         loss  = ckpt.get("loss",  float("nan"))
         print(f"  Epoch {epoch}  |  loss {loss:.4f}")
         vicreg.load_state_dict(ckpt["model_state_dict"])
+
+    # ── Loss curve (if metrics.csv exists in checkpoint dir) ─────────────────
+    if not args.random_init:
+        metrics_csv = os.path.join(os.path.dirname(args.checkpoint), "metrics.csv")
+        if os.path.exists(metrics_csv):
+            epochs_csv, total, repr_l, std_l, cov_l, embed_std = [], [], [], [], [], []
+            with open(metrics_csv) as f:
+                for row in csv.DictReader(f):
+                    epochs_csv.append(int(row["epoch"]))
+                    total.append(float(row["total_loss"]))
+                    repr_l.append(float(row["repr_loss"]))
+                    std_l.append(float(row["std_loss"]))
+                    cov_l.append(float(row["cov_loss"]))
+                    embed_std.append(float(row["embed_std"]))
+
+            fig, axes = plt.subplots(1, 2, figsize=(13, 4))
+            fig.suptitle(f"VICReg Training Metrics  (epoch {epoch})", fontsize=13)
+
+            ax = axes[0]
+            ax.plot(epochs_csv, total,  label="Total",       linewidth=1.5)
+            ax.plot(epochs_csv, repr_l, label="Repr (×sim)",  linewidth=1.2, linestyle="--")
+            ax.plot(epochs_csv, std_l,  label="Std (×std)",   linewidth=1.2, linestyle="--")
+            ax.plot(epochs_csv, cov_l,  label="Cov (×cov)",   linewidth=1.2, linestyle="--")
+            ax.set_xlabel("Epoch"); ax.set_ylabel("Loss")
+            ax.set_title("Loss components"); ax.legend(fontsize=8)
+
+            ax = axes[1]
+            ax.plot(epochs_csv, embed_std, color="purple", linewidth=1.5)
+            ax.set_xlabel("Epoch"); ax.set_ylabel("Mean embedding std")
+            ax.set_title("Encoder embedding std (train)")
+
+            plt.tight_layout()
+            out_loss = os.path.join(args.outdir, f"loss_curves_epoch{epoch}.png")
+            os.makedirs(args.outdir, exist_ok=True)
+            plt.savefig(out_loss, dpi=150)
+            plt.close(fig)
+            print(f"Saved: {out_loss}")
+        else:
+            print(f"No metrics.csv found at {metrics_csv} — skipping loss plot")
 
     print(f"Loading data from: {data_path}")
     x_train, x_val, x_sig = load_data(

@@ -3,6 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
 
 import argparse
+import csv
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -128,6 +129,12 @@ def train(config, device):
         weight_decay=config["training"]["weight_decay"],
     )
 
+    metrics_path = os.path.join(checkpoint_dir, "metrics.csv")
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    with open(metrics_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["epoch", "total_loss", "repr_loss", "std_loss", "cov_loss", "embed_std"])
+
     for epoch in range(n_epochs):
         vicreg.train()
 
@@ -158,15 +165,23 @@ def train(config, device):
                 embedding_stds.append(vicreg.encoder(x1).std(dim=0).mean().item())
 
         n = batch_count
-        avg_loss = loss_total / n
+        avg_loss   = loss_total / n
+        avg_repr   = repr_total / n
+        avg_std    = std_total  / n
+        avg_cov    = cov_total  / n
+        avg_embstd = float(np.mean(embedding_stds))
+
         print(
             f"Epoch [{epoch+1}/{n_epochs}] | "
             f"Total: {avg_loss:.4f} | "
-            f"Repr: {repr_total/n:.4f} | "
-            f"Std: {std_total/n:.4f} | "
-            f"Cov: {cov_total/n:.4f} | "
-            f"EmbedStd: {np.mean(embedding_stds):.4f}"
+            f"Repr: {avg_repr:.4f} | "
+            f"Std: {avg_std:.4f} | "
+            f"Cov: {avg_cov:.4f} | "
+            f"EmbedStd: {avg_embstd:.4f}"
         )
+
+        with open(metrics_path, "a", newline="") as f:
+            csv.writer(f).writerow([epoch + 1, avg_loss, avg_repr, avg_std, avg_cov, avg_embstd])
 
         if (epoch + 1) % checkpoint_interval == 0:
             save_checkpoint(vicreg, optimizer, epoch + 1, avg_loss, checkpoint_dir)
