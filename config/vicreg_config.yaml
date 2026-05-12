@@ -8,7 +8,7 @@ training:
   optimizer: "Adam"
   learning_rate: 0.00005
   weight_decay: 0.000001
-  checkpoint_dir: "/axovol/l1ad/checkpoints/vicreg"
+  checkpoint_dir: "/axovol/l1ad/checkpoints/vicreg_bug_study"
   checkpoint_interval: 50
 
 model:
