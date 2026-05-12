@@ -87,15 +87,19 @@ def plot_2d(ax, coords, labels, colors, title, legend=True):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config",     default="config/vicreg_config.yaml")
-    parser.add_argument("--checkpoint", required=True, help="Path to .pt checkpoint file")
-    parser.add_argument("--data",       default=None,  help="Override data filepath from config")
-    parser.add_argument("--n-train",    type=int, default=10000)
-    parser.add_argument("--n-val",      type=int, default=5000)
-    parser.add_argument("--n-sig",      type=int, default=5000)
-    parser.add_argument("--tsne-perp",  type=float, default=30.0)
-    parser.add_argument("--outdir",     default="eval_vicreg_plots")
+    parser.add_argument("--config",      default="config/vicreg_config.yaml")
+    parser.add_argument("--checkpoint",  default=None, help="Path to .pt checkpoint file")
+    parser.add_argument("--random-init", action="store_true", help="Skip checkpoint, use random weights")
+    parser.add_argument("--data",        default=None,  help="Override data filepath from config")
+    parser.add_argument("--n-train",     type=int, default=10000)
+    parser.add_argument("--n-val",       type=int, default=5000)
+    parser.add_argument("--n-sig",       type=int, default=5000)
+    parser.add_argument("--tsne-perp",   type=float, default=30.0)
+    parser.add_argument("--outdir",      default="eval_vicreg_plots")
     args = parser.parse_args()
+
+    if not args.random_init and args.checkpoint is None:
+        raise ValueError("Provide --checkpoint or --random-init")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Device: {device}")
@@ -103,14 +107,18 @@ def main():
     config = load_config(args.config)
     data_path = args.data or config["data"]["filepath"]
 
-    print(f"Loading checkpoint: {args.checkpoint}")
-    ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
-    epoch = ckpt.get("epoch", "?")
-    loss  = ckpt.get("loss",  float("nan"))
-    print(f"  Epoch {epoch}  |  loss {loss:.4f}")
-
     vicreg = build_model(config, device)
-    vicreg.load_state_dict(ckpt["model_state_dict"])
+
+    if args.random_init:
+        epoch, loss = "random", float("nan")
+        print("Using randomly initialized model (no checkpoint)")
+    else:
+        print(f"Loading checkpoint: {args.checkpoint}")
+        ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
+        epoch = ckpt.get("epoch", "?")
+        loss  = ckpt.get("loss",  float("nan"))
+        print(f"  Epoch {epoch}  |  loss {loss:.4f}")
+        vicreg.load_state_dict(ckpt["model_state_dict"])
 
     print(f"Loading data from: {data_path}")
     x_train, x_val, x_sig = load_data(
