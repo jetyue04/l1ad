@@ -1,0 +1,64 @@
+data:
+  filepath: "../training/v5/conditionsupdate_apr25.h5"
+  output: "output_vicreg_wnae"
+  n_train_sample: 100000
+  n_test_sample: 50000
+  signal: "GluGluHToBB_M-125"
+
+vicreg:
+  checkpoint: "/axovol/l1ad/checkpoints/vicreg_fixed/checkpoint_epoch1000.pt"
+  encoder:
+    input_size: 57
+    intermediate_architecture: [29]
+    bottleneck_size: 10
+    drop_out: null
+
+model:
+  encoder:
+    intermediate_architecture: [9, 6]
+    bottleneck_size: 4
+    drop_out: null
+  decoder:
+    intermediate_architecture: [9, 6]
+    bottleneck_size: 4
+    drop_out: null
+
+training:
+  batch_size: 2048
+  n_epochs: 100
+  es_patience: 5000
+  optimizer: "AdamW"
+  learning_rate: 0.005
+  lr_scheduler: "ReduceLROnPlateau"
+  lr_scheduler_args:
+    mode: "min"
+    factor: 0.8
+    patience: 20
+    threshold: 0.001
+    cooldown: 10
+    threshold_mode: "rel"
+    min_lr: 0
+
+wnae:
+  sampling: "pcd"
+  x_step: 5
+  x_step_size: 0.05
+  x_noise_std: 0.22
+  x_temperature: 0.063
+  x_bound: [-3, 3]
+  x_clip_grad: null
+  x_reject_boundary: false
+  x_mh: false
+  z_step: 5
+  z_step_size: 0.05
+  z_temperature: 0.063
+  z_noise_std: 1
+  z_bound: null
+  z_clip_grad: null
+  z_reject_boundary: false
+  z_mh: false
+  spherical: false
+  initial_dist: "gaussian"
+  replay: true
+  replay_ratio: 0.95
+  buffer_size: 10000
