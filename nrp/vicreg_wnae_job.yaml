@@ -8,8 +8,8 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-        - name: tuner
-          image: python:3.10-slim
+        - name: trainer
+          image: gitlab-registry.nrp-nautilus.io/mquinnan/axol1tl-hub:axol1tl-container
           imagePullPolicy: Always
           volumeMounts:
             - name: axovol
@@ -21,10 +21,11 @@ spec:
             - "-c"
             - |
               set -e
-              python -m pip install --no-cache-dir -r requirements.txt
-              python -m pip install numpy==1.23.5
-              python -m pip install scipy==1.13.1
-              python -u train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml | tee vicreg_wnae_training.log
+              cd /axovol/l1ad
+              git pull
+              pip install pot --quiet
+              mkdir -p /axovol/l1ad/checkpoints/vicreg_wnae
+              python -u train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml | tee /axovol/l1ad/checkpoints/vicreg_wnae/training.log
 
           resources:
             requests:
