@@ -50,8 +50,7 @@ def job_yaml(x_step, x_step_size):
         f"--x-step {x_step} "
         f"--x-step-size {x_step_size} "
         f"--outdir {outdir} "
-        f"| tee {log_file} && "
-        f"python -u generate_report.py {outdir} --config {outdir}/config.yaml"
+        f"| tee {log_file}"
     )
 
     return f"""\
