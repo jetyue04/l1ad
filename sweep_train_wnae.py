@@ -132,11 +132,13 @@ def main():
         lr_scheduler = None
 
     # ── Training loop ─────────────────────────────────────────────────────────
-    metrics = {"epoch": [], "train_loss": [], "val_loss": [], "auc": []}
+    # Column names match generate_report.py expectations
+    metrics = {"epoch": [], "training_loss": [], "validation_loss": [], "auc": []}
     best_val_loss = float("inf")
-    es_counter = 0
-    es_patience = cfg["training"]["es_patience"]
-    n_epochs    = cfg["training"]["n_epochs"]
+    best_epoch    = 0
+    es_counter    = 0
+    es_patience   = cfg["training"]["es_patience"]
+    n_epochs      = cfg["training"]["n_epochs"]
 
     for epoch in range(n_epochs):
         wnae.train()
@@ -174,8 +176,8 @@ def main():
         auc = roc_auc_score(y_true, y_pred)
 
         metrics["epoch"].append(epoch + 1)
-        metrics["train_loss"].append(train_loss)
-        metrics["val_loss"].append(val_loss)
+        metrics["training_loss"].append(train_loss)
+        metrics["validation_loss"].append(val_loss)
         metrics["auc"].append(auc)
 
         print(f"Epoch {epoch+1}/{n_epochs} | train {train_loss:.4f} | val {val_loss:.4f} | AUC {auc:.4f}")
@@ -183,6 +185,7 @@ def main():
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
+            best_epoch    = epoch + 1
             torch.save({"epoch": epoch+1, "model_state_dict": wnae.state_dict()}, outdir / "best.pt")
             es_counter = 0
         else:
@@ -193,6 +196,7 @@ def main():
             break
 
     torch.save({"epoch": epoch+1, "model_state_dict": wnae.state_dict()}, outdir / "last.pt")
+    (outdir / "info.txt").write_text(f"Best epoch: {best_epoch}\n")
     print(f"Done. Outputs in {outdir}/")
 
 

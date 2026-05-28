@@ -42,7 +42,7 @@ def job_yaml(x_step, x_step_size):
         f"set -e && "
         f"cd {WORKDIR} && "
         f"git pull && "
-        f"pip install pot --quiet && "
+        f"pip install pot reportlab --quiet && "
         f"mkdir -p {outdir} && "
         f"python -u sweep_train_wnae.py "
         f"--vicreg-checkpoint {VICREG_CKPT} "
@@ -50,7 +50,8 @@ def job_yaml(x_step, x_step_size):
         f"--x-step {x_step} "
         f"--x-step-size {x_step_size} "
         f"--outdir {outdir} "
-        f"| tee {log_file}"
+        f"| tee {log_file} && "
+        f"python -u generate_report.py {outdir} --config {outdir}/config.yaml"
     )
 
     return f"""\
