@@ -148,16 +148,15 @@ def main():
             else:
                 lr_scheduler.step()
 
-        # Validate
+        # Validate (no torch.no_grad — validation_step runs MCMC which needs autograd)
         wnae.eval()
         val_loss, n_batches = 0., 0
         val_reco_errors = []
-        with torch.no_grad():
-            for (batch,) in val_loader:
-                d = wnae.validation_step(batch)
-                val_loss += d["loss"]
-                val_reco_errors.append(d["reco_errors"])
-                n_batches += 1
+        for (batch,) in val_loader:
+            d = wnae.validation_step(batch)
+            val_loss += d["loss"]
+            val_reco_errors.append(d["reco_errors"])
+            n_batches += 1
         val_loss /= n_batches
         val_reco_errors = torch.cat(val_reco_errors).numpy()
 
