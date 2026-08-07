@@ -44,7 +44,7 @@ def job_yaml(x_step, x_step_size):
         f"git pull && "
         f"pip install pot reportlab --quiet && "
         f"mkdir -p {outdir} && "
-        f"python -u sweep_train_wnae.py "
+        f"python -u scripts/sweep_train_wnae.py "
         f"--checkpoint {VICREG_CKPT} "
         f"--config config/vicreg_wnae_config.yaml "
         f"--x-step {x_step} "

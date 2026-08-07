@@ -25,7 +25,7 @@ spec:
               git pull
               pip install pot --quiet
               mkdir -p /axovol/l1ad/checkpoints/vicreg_wnae
-              python -u train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml | tee /axovol/l1ad/checkpoints/vicreg_wnae/training.log
+              python -u scripts/train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml | tee /axovol/l1ad/checkpoints/vicreg_wnae/training.log
 
           resources:
             requests:

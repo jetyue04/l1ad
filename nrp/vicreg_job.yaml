@@ -24,7 +24,7 @@ spec:
               python -m pip install --no-cache-dir -r requirements.txt
               python -m pip install numpy==1.23.5
               python -m pip install scipy==1.13.1
-              python -u train_vicreg.py --config config/config.yaml | tee vicreg_training.log
+              python -u scripts/train_vicreg.py --config config/config.yaml | tee vicreg_training.log
 
           resources:
             requests:

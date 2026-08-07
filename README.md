@@ -105,45 +105,45 @@ gitlab-registry.nrp-nautilus.io/mquinnan/axol1tl-hub:axol1tl-container
 
 ## Scripts
 
-All root-level scripts add `src/` to the Python path automatically.
+All scripts live in `scripts/` and are run from the project root. They add `src/` to the Python path automatically.
 
 ### Training
 
 | Script | Purpose |
 |--------|---------|
-| `train_vicreg.py` | Train the VICReg encoder from scratch. Saves checkpoints to `checkpoint_dir` defined in the config (default `/axovol/l1ad/checkpoints/vicreg`). Logs per-epoch loss components to `metrics.csv`. |
-| `train_vicreg_wnae.py` | **Main pipeline script.** Loads a pretrained VICReg checkpoint, embeds and standardizes all data, then trains WNAE in embedding space. Saves `vicreg_wnae_final.pt` containing model weights + embedding stats. |
-| `sweep_train_wnae.py` | Single WNAE training run with MCMC hyperparameter overrides (`--x-step`, `--x-step-size`). Calls `train_vicreg_wnae` internally, then generates a PDF report via `generate_report.py`. Used by `launch_sweep.py`. |
+| `scripts/train_vicreg.py` | Train the VICReg encoder from scratch. Saves checkpoints to `checkpoint_dir` defined in the config (default `/axovol/l1ad/checkpoints/vicreg`). Logs per-epoch loss components to `metrics.csv`. |
+| `scripts/train_vicreg_wnae.py` | **Main pipeline script.** Loads a pretrained VICReg checkpoint, embeds and standardizes all data, then trains WNAE in embedding space. Saves `vicreg_wnae_final.pt` containing model weights + embedding stats. |
+| `scripts/sweep_train_wnae.py` | Single WNAE training run with MCMC hyperparameter overrides (`--x-step`, `--x-step-size`). Calls `train_vicreg_wnae` internally, then generates a PDF report via `generate_report.py`. Used by `launch_sweep.py`. |
 
 ### Sweeps
 
 | Script | Purpose |
 |--------|---------|
-| `launch_sweep.py` | Generates and optionally submits a 4×4 grid of NRP Kubernetes jobs sweeping `x_step` ∈ {5,10,20,50} × `x_step_size` ∈ {0.01,0.05,0.1,0.2}. Each job runs `sweep_train_wnae.py` and saves output to `/axovol/l1ad/checkpoints/sweep/step{N}_size{S}/`. |
+| `scripts/launch_sweep.py` | Generates and optionally submits a 4×4 grid of NRP Kubernetes jobs sweeping `x_step` ∈ {5,10,20,50} × `x_step_size` ∈ {0.01,0.05,0.1,0.2}. Each job runs `sweep_train_wnae.py` and saves output to `/axovol/l1ad/checkpoints/sweep/step{N}_size{S}/`. |
 
 ```bash
-python launch_sweep.py              # preview job list
-python launch_sweep.py --dry-run    # print first job YAML
-python launch_sweep.py --apply      # submit all 16 jobs to NRP
+python scripts/launch_sweep.py              # preview job list
+python scripts/launch_sweep.py --dry-run    # print first job YAML
+python scripts/launch_sweep.py --apply      # submit all 16 jobs to NRP
 ```
 
 ### Evaluation
 
 | Script | Purpose |
 |--------|---------|
-| `eval_vicreg.py` | Evaluate a trained VICReg encoder. Loads a checkpoint, extracts embeddings, and produces PCA and t-SNE scatter plots plus per-feature distribution histograms. Optionally runs with `--random-init` to compare against an untrained baseline. |
-| `plot_vicreg_metrics.py` | Compare VICReg training loss curves across multiple runs. Takes one or more `metrics.csv` paths (optionally labelled `path:label`). |
-| `generate_report.py` | Generate a formatted PDF report from a `train_vicreg_wnae.py` output directory. Reads `training.csv`, `config.yaml`, and any generated plots. Called automatically by `sweep_train_wnae.py`. |
+| `scripts/eval_vicreg.py` | Evaluate a trained VICReg encoder. Loads a checkpoint, extracts embeddings, and produces PCA and t-SNE scatter plots plus per-feature distribution histograms. Optionally runs with `--random-init` to compare against an untrained baseline. |
+| `scripts/plot_vicreg_metrics.py` | Compare VICReg training loss curves across multiple runs. Takes one or more `metrics.csv` paths (optionally labelled `path:label`). |
+| `scripts/generate_report.py` | Generate a formatted PDF report from a `train_vicreg_wnae.py` output directory. Reads `training.csv`, `config.yaml`, and any generated plots. Called automatically by `sweep_train_wnae.py`. |
 
 ```bash
 # Evaluate a VICReg checkpoint
-python eval_vicreg.py \
+python scripts/eval_vicreg.py \
     --checkpoint checkpoints/vicreg_fixed/checkpoint_epoch1000.pt \
     --data ../training/v5/conditionsupdate_apr25.h5 \
     --outdir eval_plots/
 
 # Compare two training runs
-python plot_vicreg_metrics.py \
+python scripts/plot_vicreg_metrics.py \
     --metrics checkpoints/vicreg_fixed/metrics.csv:fixed \
                checkpoints/vicreg_bug/metrics.csv:buggy \
     --outdir metric_comparison/
@@ -227,7 +227,7 @@ Standalone WNAE config (without VICReg). Used when training WNAE directly on raw
 ### Step 1 — Train VICReg
 
 ```bash
-python train_vicreg.py \
+python scripts/train_vicreg.py \
     --config config/vicreg_config.yaml \
     --data /path/to/data.h5
 ```
@@ -237,7 +237,7 @@ Checkpoints are saved every 50 epochs to the `checkpoint_dir` in the config.
 ### Step 2 — Train WNAE on VICReg embeddings
 
 ```bash
-python train_vicreg_wnae.py \
+python scripts/train_vicreg_wnae.py \
     --config config/vicreg_wnae_config.yaml \
     --checkpoint /path/to/vicreg/checkpoint_epoch1000.pt \
     --data /path/to/data.h5 \
@@ -255,7 +255,7 @@ Outputs saved to `--output`:
 
 ```bash
 # Run 16 jobs on NRP covering x_step ∈ {5,10,20,50} × x_step_size ∈ {0.01,0.05,0.1,0.2}
-python launch_sweep.py --apply
+python scripts/launch_sweep.py --apply
 ```
 
 Each job writes results to `/axovol/l1ad/checkpoints/sweep/step{N}_size{S}/` and generates a PDF report.
@@ -268,8 +268,8 @@ All job files are in `nrp/`. The cluster namespace is `axol1tl` and data is on t
 
 | File | Purpose |
 |------|---------|
-| `nrp/vicreg_job.yaml` | Train VICReg. Uses `python:3.10-slim` and installs dependencies at runtime. Runs `train_vicreg.py`. |
-| `nrp/vicreg_wnae_job.yaml` | **Primary job.** Runs the full VICReg→WNAE pipeline via `train_vicreg_wnae.py`. Uses the pre-built `axol1tl-container` image. Does `git pull` to pick up latest code before running. |
+| `nrp/vicreg_job.yaml` | Train VICReg. Uses `python:3.10-slim` and installs dependencies at runtime. Runs `scripts/train_vicreg.py`. |
+| `nrp/vicreg_wnae_job.yaml` | **Primary job.** Runs the full VICReg→WNAE pipeline via `scripts/train_vicreg_wnae.py`. Uses the pre-built `axol1tl-container` image. Does `git pull` to pick up latest code before running. |
 | `nrp/wnae_pod.yaml` | Interactive GPU pod for development and debugging. Installs `pot`, then sleeps for 1 day. Exec into it to run commands manually. |
 
 > `nrp/wnae_job.yaml` is an older job that runs the now-defunct `train_axo.py`. It should not be used.
@@ -294,14 +294,38 @@ kubectl apply -f nrp/wnae_pod.yaml
 kubectl exec -it wnae-pod -n axol1tl -- /bin/bash
 # Inside the pod:
 cd /axovol/l1ad
-python train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml
+python scripts/train_vicreg_wnae.py --config config/vicreg_wnae_config.yaml
 ```
 
 ---
 
-## Source Code Layout
+## Repository Layout
 
 ```
+scripts/                          Entry-point scripts (run from project root)
+├── train_vicreg.py               Stage 1: train VICReg encoder
+├── train_vicreg_wnae.py          Stage 2: train WNAE on VICReg embeddings  ← main script
+├── sweep_train_wnae.py           Single sweep run with MCMC overrides + PDF report
+├── launch_sweep.py               Submit MCMC hyperparameter grid to NRP
+├── eval_vicreg.py                Evaluate VICReg encoder (PCA, t-SNE, histograms)
+├── plot_vicreg_metrics.py        Compare loss curves across runs
+└── generate_report.py            Generate PDF report from training output dir
+
+config/                           Hyperparameter configs
+├── vicreg_wnae_config.yaml       Main pipeline config (VICReg→WNAE)  ← use this
+├── vicreg_config.yaml            VICReg-only training config
+└── config.yaml                   Standalone WNAE config (raw features, no VICReg)
+
+nrp/                              Kubernetes job/pod definitions for NRP cluster
+├── vicreg_wnae_job.yaml          Primary GPU job: full VICReg→WNAE pipeline
+├── vicreg_job.yaml               GPU job: VICReg training only
+└── wnae_pod.yaml                 Interactive GPU pod for debugging
+
+notebooks/                        Exploratory notebooks (not part of main pipeline)
+
+docs/                             Supplementary documentation
+└── CLEANUP_TODO.md               Identified dead files / code to remove
+
 src/
 ├── model/
 │   ├── encoder.py              Shared MLP encoder (ReLU activations, optional dropout)
@@ -322,7 +346,10 @@ src/
     └── vicreg_stage.py         Stub — not yet implemented
 ```
 
-### Key model methods
+### Source Code
+
+```
+src/
 
 **`WNAE`** (`src/model/wnae/wasserstein_normalized_autoencoder.py`):
 - `train_step(x)` — forward pass + MCMC negative sampling + Wasserstein loss
