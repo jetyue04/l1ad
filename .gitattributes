@@ -1,0 +1,5 @@
+# Tell GitHub Linguist to not count notebooks as the primary language
+*.ipynb linguist-detectable=false
+
+# Treat notebooks as documentation so they don't skew language stats
+*.ipynb linguist-documentation=true

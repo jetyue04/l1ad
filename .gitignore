@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Environments
+.env
+.venv
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# R
+.Rhistory
+.RData
+
+# Data / outputs
+checkpoints/
+logs/
+*.h5
+*.hdf5
+*.root
+*.csv
+*.pdf
+*.png
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
